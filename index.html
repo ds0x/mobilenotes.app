@@ -7,28 +7,38 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<div id="app">
-  <aside id="tags"></aside>
-  <aside id="posts">
-    <div class="posts-header">
-      <button id="toggle-tags">☰</button>
-      <input id="search" placeholder="Search" />
+<div id="window">
+  <div id="titlebar">
+    <div class="traffic">
+      <span class="dot red" id="back"></span>
+      <span class="dot yellow" id="about"></span>
+      <span class="dot green" id="fullscreen"></span>
     </div>
-    <div id="post-list"></div>
-  </aside>
-  <main id="content">
-    <div class="content-header">
-      <div class="traffic">
-        <span class="dot red" id="back"></span>
-        <span class="dot yellow" id="about"></span>
-        <span class="dot green" id="fullscreen"></span>
+    <div class="title">MobileNotes.app</div>
+  </div>
+
+  <div id="app">
+    <aside id="tags">
+      <button id="toggle-tags">❮</button>
+      <div id="tag-list"></div>
+    </aside>
+
+    <aside id="posts">
+      <div class="posts-header">
+        <input id="search" placeholder="Search" />
       </div>
-      <button id="share">Share</button>
-    </div>
-    <article id="post-content"></article>
-  </main>
+      <div id="post-list"></div>
+    </aside>
+
+    <main id="content">
+      <div class="content-header">
+        <button id="share">Share</button>
+      </div>
+      <article id="post-content"></article>
+    </main>
+  </div>
 </div>
-<script src="posts.js"></script>
+
 <script src="app.js"></script>
 </body>
 </html>

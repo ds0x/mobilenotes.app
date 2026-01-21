@@ -1,48 +1,76 @@
-const tagsEl=document.getElementById("tags");
+const tagListEl=document.getElementById("tag-list");
 const postsEl=document.getElementById("post-list");
 const contentEl=document.getElementById("post-content");
 const searchEl=document.getElementById("search");
 
+let POSTS=[];
 let activeTag="All";
 let activePost=null;
 let readState=JSON.parse(localStorage.getItem("readState")||"{}");
 let accent=localStorage.getItem("accent")||"#ffd60a";
-
 document.documentElement.style.setProperty("--accent",accent);
-document.documentElement.style.setProperty("--accent-text","#1c1c1e");
 
-function save(){localStorage.setItem("readState",JSON.stringify(readState))}
+async function loadPosts(){
+ const files=["welcome.md","offline.md"];
+ for(const f of files){
+  const raw=await fetch(`posts/${f}`).then(r=>r.text());
+  POSTS.push(parsePost(raw,f));
+ }
+ POSTS.sort((a,b)=>b.date-a.date);
+}
+
+function parsePost(raw,file){
+ const m=raw.match(/---([\s\S]*?)---([\s\S]*)/);
+ const meta={};
+ m[1].trim().split("\n").forEach(l=>{
+  const [k,...v]=l.split(":");
+  meta[k.trim()]=v.join(":").trim();
+ });
+ return{
+  id:file.replace(".md",""),
+  title:meta.title,
+  date:new Date(meta.date),
+  tags:meta.tags.split(",").map(t=>t.trim()),
+  body:m[2].trim(),
+  preview:m[2].replace(/[#>*_]/g,"").slice(0,80)
+ };
+}
+
+function group(date){
+ const d=new Date(date);
+ const now=new Date();
+ const diff=(now-d)/(1000*60*60*24);
+ if(diff<1) return "Today";
+ if(diff<2) return "Yesterday";
+ if(diff<7) return "Last 7 Days";
+ return "Older";
+}
 
 function renderTags(){
  const tags=["All",...new Set(POSTS.flatMap(p=>p.tags))];
- tagsEl.innerHTML="";
+ tagListEl.innerHTML="";
  tags.forEach(t=>{
   const d=document.createElement("div");
   d.className="tag"+(t===activeTag?" active":"");
   d.textContent=t;
   d.onclick=()=>{activeTag=t;renderTags();renderPosts()};
-  tagsEl.appendChild(d);
+  tagListEl.appendChild(d);
  });
-}
-
-function groupByDate(posts){
- const groups={};
- posts.forEach(p=>{
-  const d=new Date(p.date);
-  const key=d.toDateString();
-  groups[key]=groups[key]||[];
-  groups[key].push(p);
- });
- return groups;
 }
 
 function renderPosts(){
  postsEl.innerHTML="";
- const q=searchEl.value.toLowerCase();
  let list=activeTag==="All"?POSTS:POSTS.filter(p=>p.tags.includes(activeTag));
+ const q=searchEl.value.toLowerCase();
  if(q) list=list.filter(p=>p.title.toLowerCase().includes(q));
- const groups=groupByDate(list);
- Object.keys(groups).sort((a,b)=>new Date(b)-new Date(a)).forEach(g=>{
+ const groups={};
+ list.forEach(p=>{
+  const g=group(p.date);
+  groups[g]=groups[g]||[];
+  groups[g].push(p);
+ });
+ ["Today","Yesterday","Last 7 Days","Older"].forEach(g=>{
+  if(!groups[g]) return;
   const h=document.createElement("div");
   h.className="group";
   h.textContent=g;
@@ -56,7 +84,7 @@ function renderPosts(){
     d.appendChild(dot);
    }
    const t=document.createElement("div");
-   t.innerHTML=`<strong>${p.title}</strong><div class="post-preview">${p.content.replace(/<[^>]+>/g,"").slice(0,60)}...</div>`;
+   t.innerHTML=`<strong>${p.title}</strong><div class="post-preview">${p.preview}...</div>`;
    d.appendChild(t);
    d.onclick=()=>openPost(p);
    postsEl.appendChild(d);
@@ -67,43 +95,31 @@ function renderPosts(){
 function openPost(p){
  activePost=p;
  readState[p.id]=true;
- save();
+ localStorage.setItem("readState",JSON.stringify(readState));
  history.replaceState(null,"",`#${p.id}`);
- contentEl.innerHTML=p.content;
+ contentEl.innerHTML=p.body;
  renderPosts();
 }
 
 searchEl.oninput=renderPosts;
-
-document.getElementById("toggle-tags").onclick=()=>tagsEl.classList.toggle("collapsed");
+document.getElementById("toggle-tags").onclick=()=>document.getElementById("tags").classList.toggle("collapsed");
 document.getElementById("back").onclick=()=>history.back();
 document.getElementById("fullscreen").onclick=()=>document.documentElement.requestFullscreen();
-
 document.getElementById("about").onclick=()=>{
- contentEl.innerHTML=`<div class="about">
- <h2>About MobileNotes</h2>
- <p>Accent color:</p>
- <div style="display:flex;gap:8px">
- ${["#ffd60a","#ff9f0a","#ff453a","#bf5af2","#64d2ff","#30d158","#0a84ff","#5e5ce6"]
-   .map(c=>`<div class="color" style="background:${c}" onclick="setAccent('${c}')"></div>`).join("")}
- </div></div>`;
+ contentEl.innerHTML=`<h2>About MobileNotes</h2>`;
 };
-
-window.setAccent=c=>{
- localStorage.setItem("accent",c);
- document.documentElement.style.setProperty("--accent",c);
-};
-
 document.getElementById("share").onclick=async()=>{
  if(!activePost) return;
- const url=location.origin+location.pathname+"#"+activePost.id;
- await navigator.clipboard.writeText(url);
+ await navigator.clipboard.writeText(location.href);
 };
 
-renderTags();
-renderPosts();
-if(location.hash){
- const p=POSTS.find(x=>x.id===location.hash.slice(1));
- if(p) openPost(p);
-}
-if(!activePost) openPost(POSTS[0]);
+(async()=>{
+ await loadPosts();
+ renderTags();
+ renderPosts();
+ if(location.hash){
+  const p=POSTS.find(x=>x.id===location.hash.slice(1));
+  if(p) openPost(p);
+ }
+ if(!activePost) openPost(POSTS[0]);
+})();
