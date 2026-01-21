@@ -10,9 +10,9 @@
 <div id="window">
   <div id="titlebar">
     <div class="traffic">
-      <span class="dot red" id="back"></span>
-      <span class="dot yellow" id="about"></span>
-      <span class="dot green" id="fullscreen"></span>
+      <span class="dot red" id="back" data-icon="×"></span>
+      <span class="dot yellow" id="about" data-icon="–"></span>
+      <span class="dot green" id="fullscreen" data-icon="+"></span>
     </div>
     <div class="title">MobileNotes.app</div>
   </div>
@@ -25,6 +25,7 @@
 
     <aside id="posts">
       <div class="posts-header">
+        <button id="mobile-back">‹</button>
         <input id="search" placeholder="Search" />
       </div>
       <div id="post-list"></div>
@@ -37,6 +38,10 @@
       <article id="post-content"></article>
     </main>
   </div>
+
+  <footer>
+    <a href="#" id="footer-about">This human uses em dashes, en dashes, and semicolons.</a>
+  </footer>
 </div>
 
 <script src="app.js"></script>

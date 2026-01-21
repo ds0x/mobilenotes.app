@@ -2,13 +2,20 @@ const tagListEl=document.getElementById("tag-list");
 const postsEl=document.getElementById("post-list");
 const contentEl=document.getElementById("post-content");
 const searchEl=document.getElementById("search");
+const isMobile=window.matchMedia("(max-width:768px)").matches;
 
 let POSTS=[];
 let activeTag="All";
 let activePost=null;
 let readState=JSON.parse(localStorage.getItem("readState")||"{}");
-let accent=localStorage.getItem("accent")||"#ffd60a";
-document.documentElement.style.setProperty("--accent",accent);
+
+function mdToHtml(md){
+ return md
+  .replace(/^# (.*)$/gm,"<h1>$1</h1>")
+  .replace(/^## (.*)$/gm,"<h2>$1</h2>")
+  .replace(/\n\n/g,"</p><p>")
+  .replace(/^(?!<h\d>)/,"<p>")+" </p>";
+}
 
 async function loadPosts(){
  const files=["welcome.md","offline.md"];
@@ -31,7 +38,7 @@ function parsePost(raw,file){
   title:meta.title,
   date:new Date(meta.date),
   tags:meta.tags.split(",").map(t=>t.trim()),
-  body:m[2].trim(),
+  body:mdToHtml(m[2].trim()),
   preview:m[2].replace(/[#>*_]/g,"").slice(0,80)
  };
 }
@@ -96,30 +103,36 @@ function openPost(p){
  activePost=p;
  readState[p.id]=true;
  localStorage.setItem("readState",JSON.stringify(readState));
- history.replaceState(null,"",`#${p.id}`);
  contentEl.innerHTML=p.body;
+ if(isMobile){
+  document.getElementById("posts").style.display="none";
+  document.getElementById("content").style.display="flex";
+ }
  renderPosts();
 }
 
 searchEl.oninput=renderPosts;
+document.getElementById("mobile-back").onclick=()=>{
+ document.getElementById("posts").style.display="flex";
+ document.getElementById("content").style.display="none";
+};
 document.getElementById("toggle-tags").onclick=()=>document.getElementById("tags").classList.toggle("collapsed");
 document.getElementById("back").onclick=()=>history.back();
 document.getElementById("fullscreen").onclick=()=>document.documentElement.requestFullscreen();
-document.getElementById("about").onclick=()=>{
- contentEl.innerHTML=`<h2>About MobileNotes</h2>`;
-};
+document.getElementById("about").onclick=showAbout;
+document.getElementById("footer-about").onclick=e=>{e.preventDefault();showAbout();};
 document.getElementById("share").onclick=async()=>{
  if(!activePost) return;
  await navigator.clipboard.writeText(location.href);
 };
 
+function showAbout(){
+ contentEl.innerHTML="<h2>About MobileNotes</h2><p>A Notes-inspired blog.</p>";
+}
+
 (async()=>{
  await loadPosts();
  renderTags();
  renderPosts();
- if(location.hash){
-  const p=POSTS.find(x=>x.id===location.hash.slice(1));
-  if(p) openPost(p);
- }
- if(!activePost) openPost(POSTS[0]);
+ openPost(POSTS[0]);
 })();
